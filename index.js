@@ -1,10 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config()
-
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 8080;
 
 // middleware
 app.use(cors());
@@ -25,28 +24,88 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         await client.connect();
-        await client.db("admin").command({ ping: 1 });
         console.log("You successfully connected to MongoDB!");
 
 
-        const toolsDataCollection = client.db("Builder_Tools").collection("Tools-Data");
+        const toolsDataCollection = client.db("Builder_Tools").collection("Tools_Data");
+        const usersCollection = client.db("Builder_Tools").collection("users");
+
+        // jwt token create and pass for general user create and login
+        app.post('/jwt', async (req, res) => {
+            try {
+                const user = req.body;
+                const token = jwt.sign(user, process.env.COOKIE_SECRET, { expiresIn: '30d' });
+                res.status(200).json({
+                    success: true,
+                    data: token,
+                });
+            } catch (err) {
+                res.status(500).json({
+                    success: false,
+                    message: err.message,
+                    error: {
+                        code: 500,
+                        description: err.name,
+                    }
+                });
+            }
+        })
 
         // get all data
         app.get('/tools', async (req, res) => {
             const result = await toolsDataCollection.find().toArray();
             res.send(result);
         });
-    } finally {
+
+        // get single user after login from firebase --> complete token
+        app.get('/users/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const query = { email: email };
+                const result = await usersCollection.findOne(query);
+                res.status(200).json({
+                    success: true,
+                    data: result
+                });
+            } catch (err) {
+                res.status(500).json({
+                    success: false,
+                    message: err.message,
+                    error: {
+                        code: 500,
+                        description: err.name,
+                    }
+                });
+            }
+        })
+
+        // post single user data
+        app.post('/users', async (req, res) => {
+            const result = await usersCollection.insertOne({ ...req.body, role: 'user' });
+            res.status(200).json({
+                success: true,
+                message: 'Successfully added user'
+            });
+        });
+
+
+
+    }
+
+    finally {
         // await client.close();
     }
 }
 run().catch(console.dir);
 
 
+
+
 app.get('/', (req, res) => {
-    res.send('Server Running');
+    res.send('Builder tools Server Running');
 });
 
+const port = process.env.PORT || 8080;
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
