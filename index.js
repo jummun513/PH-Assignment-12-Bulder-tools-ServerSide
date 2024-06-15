@@ -81,11 +81,21 @@ async function run() {
 
         // post single user data
         app.post('/users', async (req, res) => {
-            const result = await usersCollection.insertOne({ ...req.body, role: 'user' });
-            res.status(200).json({
-                success: true,
-                message: 'Successfully added user'
-            });
+            const query = { email: req.body.email };
+            const isExist = await usersCollection.findOne(query);
+            if (isExist) {
+                res.status(200).json({
+                    success: true,
+                    message: 'User already exist.'
+                });
+            }
+            else {
+                await usersCollection.insertOne({ ...req.body, role: 'user' });
+                res.status(200).json({
+                    success: true,
+                    message: 'Successfully added user'
+                });
+            }
         });
 
 
