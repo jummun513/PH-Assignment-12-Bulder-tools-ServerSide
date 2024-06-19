@@ -52,7 +52,7 @@ async function run() {
         })
 
         // get all data
-        app.get('/tools', async (req, res) => {
+        app.get('/api/v1/tools', async (req, res) => {
             const result = await toolsDataCollection.find().toArray();
             res.send(result);
         });
@@ -96,6 +96,12 @@ async function run() {
                     message: 'Successfully added user'
                 });
             }
+        });
+
+        // get all user from admin side
+        app.get('/api/v1/users', async (req, res) => {
+            const result = await usersCollection.find().toArray();
+            res.send(result);
         });
 
 
