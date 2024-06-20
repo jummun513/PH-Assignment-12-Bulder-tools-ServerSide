@@ -11,7 +11,7 @@ app.use(express.json());
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.03hem.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
     serverApi: {
@@ -61,7 +61,7 @@ async function run() {
         app.get('/users/:email', async (req, res) => {
             try {
                 const email = req.params.email;
-                const query = { email: email };
+                const query = { email: email, isDeleted: { $ne: true } };
                 const result = await usersCollection.findOne(query);
                 res.status(200).json({
                     success: true,
@@ -90,7 +90,7 @@ async function run() {
                 });
             }
             else {
-                await usersCollection.insertOne({ ...req.body, role: 'user' });
+                await usersCollection.insertOne({ ...req.body, role: 'user', isDeleted: false });
                 res.status(200).json({
                     success: true,
                     message: 'Successfully added user'
@@ -100,7 +100,22 @@ async function run() {
 
         // get all user from admin side
         app.get('/api/v1/users', async (req, res) => {
-            const result = await usersCollection.find().toArray();
+            const result = await usersCollection.find({ isDeleted: { $ne: true } }).toArray();
+            res.send(result);
+        });
+
+        // get all user from admin side
+        app.patch('/api/v1/user/:id', async (req, res) => {
+            const { id } = req.params;
+            const data = req.body;
+            const result = await usersCollection.updateOne({ _id: new ObjectId(`${id}`) }, { $set: data }, { upsert: false });
+            res.send(result);
+        });
+
+        // get all user from admin side
+        app.delete('/api/v1/user/:id', async (req, res) => {
+            const { id } = req.params;
+            const result = await usersCollection.updateOne({ _id: new ObjectId(`${id}`) }, { $set: { isDeleted: true } }, { upsert: false });
             res.send(result);
         });
 
