@@ -29,6 +29,7 @@ async function run() {
 
         const toolsDataCollection = client.db("Builder_Tools").collection("Tools_Data");
         const usersCollection = client.db("Builder_Tools").collection("users");
+        const blogsCollection = client.db("Builder_Tools").collection("blogs");
 
         // jwt token create and pass for general user create and login
         app.post('/jwt', async (req, res) => {
@@ -117,6 +118,16 @@ async function run() {
             const { id } = req.params;
             const result = await usersCollection.updateOne({ _id: new ObjectId(`${id}`) }, { $set: { isDeleted: true } }, { upsert: false });
             res.send(result);
+        });
+
+
+        // get all user from admin side
+        app.post('/api/v1/blog', async (req, res) => {
+            await blogsCollection.insertOne({ ...req.body, isDeleted: false });
+            res.status(200).json({
+                success: true,
+                message: 'Successfully added blog'
+            });
         });
 
 
