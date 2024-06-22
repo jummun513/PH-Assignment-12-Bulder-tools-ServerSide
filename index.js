@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { upload, sendImageToImageKit } = require('./imageUploadHandle');
 require('dotenv').config();
 
 const app = express();
@@ -10,8 +12,6 @@ app.use(cors());
 app.use(express.json());
 
 
-
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.03hem.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
     serverApi: {
@@ -20,6 +20,7 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+
 
 async function run() {
     try {
@@ -122,12 +123,38 @@ async function run() {
 
 
         // get all user from admin side
-        app.post('/api/v1/blog', async (req, res) => {
-            await blogsCollection.insertOne({ ...req.body, isDeleted: false });
-            res.status(200).json({
-                success: true,
-                message: 'Successfully added blog'
-            });
+        app.post('/api/v1/blog', upload.single("file"), async (req, res) => {
+            try {
+                const data = JSON.parse(req.body.data);
+                const photoUrl = await sendImageToImageKit(req.file.filename, `Builder_tools/Blogs`, req.file.path);
+                await blogsCollection.insertOne({ ...data, photoUrl: photoUrl, isDeleted: false });
+                res.status(200).json({
+                    success: true,
+                    message: 'Successfully added blog'
+                });
+            } catch (error) {
+                console.log(error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to add blog',
+                    error: {
+                        code: 500,
+                        description: error?.message,
+                    }
+                });
+
+            }
+        });
+
+        app.get('/api/v1/blogs', async (req, res) => {
+            const result = await blogsCollection.find().toArray();
+            res.send(result);
+        });
+
+        app.get('/api/v1/blog/:id', async (req, res) => {
+            const { id } = req.params;
+            const result = await blogsCollection.findOne({ _id: new ObjectId(`${id}`) });
+            res.send(result);
         });
 
 
