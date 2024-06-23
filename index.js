@@ -157,8 +157,34 @@ async function run() {
             res.send(result);
         });
 
+        app.post('/api/v1/tool', upload.single("file"), async (req, res) => {
+            try {
+                const data = JSON.parse(req.body.data);
+                const photoUrl = await sendImageToImageKit(req.file.filename, `Builder_tools/Tools`, req.file.path);
+                await toolsDataCollection.insertOne({ ...data, photoUrl: photoUrl, isDeleted: false });
+                res.status(200).json({
+                    success: true,
+                    message: 'Successfully added blog'
+                });
+            } catch (error) {
+                console.log(error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to add blog',
+                    error: {
+                        code: 500,
+                        description: error?.message,
+                    }
+                });
 
+            }
+        });
 
+        app.get('/api/v1/tool/:id', async (req, res) => {
+            const { id } = req.params;
+            const result = await toolsDataCollection.findOne({ _id: new ObjectId(`${id}`) });
+            res.send(result);
+        });
     }
 
     finally {
