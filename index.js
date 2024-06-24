@@ -185,6 +185,32 @@ async function run() {
             const result = await toolsDataCollection.findOne({ _id: new ObjectId(`${id}`) });
             res.send(result);
         });
+
+
+        app.post('/api/v1/order', async (req, res) => {
+            try {
+                // console.log(req.body.data);
+                const data = JSON.parse(req.body);
+                console.log(data);
+                // const photoUrl = await sendImageToImageKit(req.file.filename, `Builder_tools/Blogs`, req.file.path);
+                // await blogsCollection.insertOne({ ...data, photoUrl: photoUrl, isDeleted: false });
+                // res.status(200).json({
+                //     success: true,
+                //     message: 'Successfully added blog'
+                // });
+            } catch (error) {
+                console.log(error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to add blog',
+                    error: {
+                        code: 500,
+                        description: error?.message,
+                    }
+                });
+
+            }
+        });
     }
 
     finally {
