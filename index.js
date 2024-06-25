@@ -31,6 +31,7 @@ async function run() {
         const toolsDataCollection = client.db("Builder_Tools").collection("Tools_Data");
         const usersCollection = client.db("Builder_Tools").collection("users");
         const blogsCollection = client.db("Builder_Tools").collection("blogs");
+        const ordersCollection = client.db("Builder_Tools").collection("orders");
 
         // jwt token create and pass for general user create and login
         app.post('/jwt', async (req, res) => {
@@ -189,15 +190,11 @@ async function run() {
 
         app.post('/api/v1/order', async (req, res) => {
             try {
-                // console.log(req.body.data);
-                const data = JSON.parse(req.body);
-                console.log(data);
-                // const photoUrl = await sendImageToImageKit(req.file.filename, `Builder_tools/Blogs`, req.file.path);
-                // await blogsCollection.insertOne({ ...data, photoUrl: photoUrl, isDeleted: false });
-                // res.status(200).json({
-                //     success: true,
-                //     message: 'Successfully added blog'
-                // });
+                await ordersCollection.insertOne({ ...req.body, isDeleted: false });
+                res.status(200).json({
+                    success: true,
+                    message: 'Successfully added order'
+                });
             } catch (error) {
                 console.log(error);
                 res.status(500).json({
@@ -210,6 +207,11 @@ async function run() {
                 });
 
             }
+        });
+
+        app.get('/api/v1/order', async (req, res) => {
+            const result = await ordersCollection.find(req.query).toArray();
+            res.send(result);
         });
     }
 
