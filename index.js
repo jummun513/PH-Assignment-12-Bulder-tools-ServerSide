@@ -190,11 +190,22 @@ async function run() {
 
         app.post('/api/v1/order', async (req, res) => {
             try {
-                await ordersCollection.insertOne({ ...req.body, isDeleted: false });
-                res.status(200).json({
-                    success: true,
-                    message: 'Successfully added order'
-                });
+                const data = req.body;
+                const isExist = await ordersCollection.findOne({ email: data.email, toolId: data.toolId });
+                if (isExist) {
+                    res.status(409).json({
+                        success: true,
+                        message: 'The order is already added'
+                    });
+                }
+                else {
+                    await ordersCollection.insertOne({ ...req.body, isDeleted: false, isConfirmed: false, isReOrder: false, isOrder: false });
+                    res.status(201).json({
+                        success: true,
+                        message: 'Successfully added order'
+                    });
+                }
+
             } catch (error) {
                 console.log(error);
                 res.status(500).json({
@@ -210,7 +221,7 @@ async function run() {
         });
 
         app.get('/api/v1/order', async (req, res) => {
-            const result = await ordersCollection.find(req.query).toArray();
+            const result = await ordersCollection.findOne(req.query);
             res.send(result);
         });
     }
