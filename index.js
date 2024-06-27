@@ -28,7 +28,7 @@ async function run() {
         console.log("You successfully connected to MongoDB!");
 
 
-        const toolsDataCollection = client.db("Builder_Tools").collection("Tools_Data");
+        const toolsDataCollection = client.db("Builder_Tools").collection("tools");
         const usersCollection = client.db("Builder_Tools").collection("users");
         const blogsCollection = client.db("Builder_Tools").collection("blogs");
         const ordersCollection = client.db("Builder_Tools").collection("orders");
@@ -162,16 +162,16 @@ async function run() {
             try {
                 const data = JSON.parse(req.body.data);
                 const photoUrl = await sendImageToImageKit(req.file.filename, `Builder_tools/Tools`, req.file.path);
-                await toolsDataCollection.insertOne({ ...data, photoUrl: photoUrl, isDeleted: false });
+                await toolsDataCollection.insertOne({ ...data, img: photoUrl, isDeleted: false });
                 res.status(200).json({
                     success: true,
-                    message: 'Successfully added blog'
+                    message: 'Successfully added tool'
                 });
             } catch (error) {
                 console.log(error);
                 res.status(500).json({
                     success: false,
-                    message: 'Failed to add blog',
+                    message: 'Failed to add tool',
                     error: {
                         code: 500,
                         description: error?.message,
@@ -187,7 +187,6 @@ async function run() {
             res.send(result);
         });
 
-
         app.post('/api/v1/order', async (req, res) => {
             try {
                 const data = req.body;
@@ -199,7 +198,7 @@ async function run() {
                     });
                 }
                 else {
-                    await ordersCollection.insertOne({ ...req.body, isDeleted: false, isConfirmed: false, isReOrder: false, isOrder: false });
+                    await ordersCollection.insertOne({ ...req.body, isDeleted: false, isConfirmed: false, isReOrder: false, isOrder: false, isPaid: false });
                     res.status(201).json({
                         success: true,
                         message: 'Successfully added order'
@@ -220,9 +219,33 @@ async function run() {
             }
         });
 
-        app.get('/api/v1/order', async (req, res) => {
+        app.get('/api/v1/order/specific-user/single-order', async (req, res) => {
             const result = await ordersCollection.findOne(req.query);
+            if (result) {
+                const tool = await toolsDataCollection.findOne({ _id: new ObjectId(result.toolId) });
+                result.toolId = tool;
+            }
             res.send(result);
+        });
+
+        app.get('/api/v1/order/specific-user/all-orders', async (req, res) => {
+            try {
+                const orders = await ordersCollection.find(req.query).toArray();
+
+                const populatedOrders = await Promise.all(orders.map(async (order) => {
+                    if (order.toolId && ObjectId.isValid(order.toolId)) {
+                        const tool = await toolsDataCollection.findOne({ _id: new ObjectId(order.toolId) });
+                        order.toolId = tool;
+                    } else {
+                        order.toolId = null;
+                    }
+                    return order;
+                }));
+
+                res.send(populatedOrders);
+            } catch (error) {
+                res.status(500).send({ message: 'Server error', error: error.message });
+            }
         });
     }
 
