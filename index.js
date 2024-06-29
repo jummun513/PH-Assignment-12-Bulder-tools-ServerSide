@@ -208,7 +208,7 @@ async function run() {
                     });
                 }
                 else {
-                    await ordersCollection.insertOne({ ...req.body, isDeleted: false, isConfirmed: false, isReOrder: false, isOrder: false, isPaid: false });
+                    await ordersCollection.insertOne({ ...req.body, isDeleted: false, isConfirmed: false, isReOrder: false, isOrder: false, isPaid: false, transactionId: "" });
                     res.status(201).json({
                         success: true,
                         message: 'Successfully added order'
@@ -227,6 +227,16 @@ async function run() {
                 });
 
             }
+        });
+
+        app.get('/api/v1/order/:id', async (req, res) => {
+            const { id } = req.params;
+            const result = await ordersCollection.findOne({ _id: new ObjectId(`${id}`) });
+            if (result) {
+                const tool = await toolsDataCollection.findOne({ _id: new ObjectId(result.toolId) });
+                result.toolId = tool;
+            }
+            res.send(result);
         });
 
         app.get('/api/v1/order/specific-user/single-order', async (req, res) => {
@@ -261,50 +271,86 @@ async function run() {
         app.post('/api/v1/order/payment', async (req, res) => {
             const data = req.body;
             const tranId = new ObjectId().toString();
-            const order = await ordersCollection.findOne({ _id: new ObjectId(`${data.id}`) });
+            const order = await ordersCollection.findOne({ _id: new ObjectId(`${data?.id}`) });
             if (order) {
                 const tool = await toolsDataCollection.findOne({ _id: new ObjectId(order.toolId) });
                 order.toolId = tool;
             }
-            console.log(order);
             try {
-                //     const data = {
-                //         total_amount: 100,
-                //         currency: 'BDT',
-                //         tran_id: 'REF123',
-                //         success_url: 'http://localhost:3030/success',
-                //         fail_url: 'http://localhost:3030/fail',
-                //         cancel_url: 'http://localhost:3030/cancel',
-                //         ipn_url: 'http://localhost:3030/ipn',
-                //         shipping_method: 'Courier',
-                //         product_name: 'Computer.',
-                //         product_category: 'Electronic',
-                //         product_profile: 'general',
-                //         cus_name: 'Customer Name',
-                //         cus_email: 'customer@example.com',
-                //         cus_add1: 'Dhaka',
-                //         cus_add2: 'Dhaka',
-                //         cus_city: 'Dhaka',
-                //         cus_state: 'Dhaka',
-                //         cus_postcode: '1000',
-                //         cus_country: 'Bangladesh',
-                //         cus_phone: '01711111111',
-                //         cus_fax: '01711111111',
-                //         ship_name: 'Customer Name',
-                //         ship_add1: 'Dhaka',
-                //         ship_add2: 'Dhaka',
-                //         ship_city: 'Dhaka',
-                //         ship_state: 'Dhaka',
-                //         ship_postcode: 1000,
-                //         ship_country: 'Bangladesh',
-                //     };
-                //     const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
-                //     sslcz.init(data).then(apiResponse => {
-                //         // Redirect the user to payment gateway
-                //         let GatewayPageURL = apiResponse.GatewayPageURL
-                //         res.redirect(GatewayPageURL)
-                //         console.log('Redirecting to: ', GatewayPageURL)
-                //     });
+                const data = {
+                    total_amount: (Number(order?.quantity) * Number(order?.toolId?.price)),
+                    currency: 'BDT',
+                    tran_id: tranId,
+                    success_url: `${process.env.SERVER_SIDE_URL}/api/v1/order/payment/success?orderId=${order?._id}&transId=${tranId}`,
+                    fail_url: `${process.env.SERVER_SIDE_URL}/api/v1/order/payment/failed?orderId=${order?._id}&transId=${tranId}`,
+                    cancel_url: `${process.env.SERVER_SIDE_URL}/api/v1/order/payment/cancel`,
+                    ipn_url: `${process.env.SERVER_SIDE_URL}/api/v1/order/payment/cancel`,
+                    shipping_method: 'Courier',
+                    product_name: order?.toolId?.heading,
+                    product_category: order?.toolId?.category,
+                    product_profile: 'general',
+                    cus_name: 'Customer Name',
+                    cus_email: order?.email,
+                    cus_add1: order?.location,
+                    cus_add2: 'Dhaka',
+                    cus_city: 'Dhaka',
+                    cus_state: 'Dhaka',
+                    cus_postcode: '1000',
+                    cus_country: 'Bangladesh',
+                    cus_phone: order?.mobileNo,
+                    cus_fax: '01711111111',
+                    ship_name: 'Customer Name',
+                    ship_add1: order?.location,
+                    ship_add2: 'Dhaka',
+                    ship_city: 'Dhaka',
+                    ship_state: 'Dhaka',
+                    ship_postcode: 1000,
+                    ship_country: 'Bangladesh',
+                };
+                const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
+                sslcz.init(data).then(apiResponse => {
+                    // Redirect the user to payment gateway
+                    let GatewayPageURL = apiResponse.GatewayPageURL
+                    res.send({ url: GatewayPageURL });
+                });
+            } catch (error) {
+                res.status(500).send({ message: 'Server error', error: error.message });
+            }
+        });
+
+        app.post('/api/v1/order/payment/success', async (req, res) => {
+            const data = req.query;
+            try {
+                const result = await ordersCollection.updateOne({ _id: new ObjectId(`${data.orderId}`) }, {
+                    $set: {
+                        isPaid: true,
+                        transactionId: data.transId
+                    }
+                });
+                if (result.modifiedCount > 0) {
+                    res.redirect(`${process.env.CLIENT_SIDE_URL}/checkout/${data.orderId}/payment/success`);
+                }
+                else {
+                    res.redirect(`${process.env.CLIENT_SIDE_URL}`);
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'Server error', error: error.message });
+            }
+        });
+
+        app.post('/api/v1/order/payment/failed', async (req, res) => {
+            const data = req.query;
+            try {
+                res.redirect(`${process.env.CLIENT_SIDE_URL}/checkout/${data.orderId}/payment/failed`);
+            } catch (error) {
+                res.status(500).send({ message: 'Server error', error: error.message });
+            }
+        });
+
+        app.post('/api/v1/order/payment/cancel', async (req, res) => {
+            const data = req.query;
+            try {
+                res.redirect(`${process.env.CLIENT_SIDE_URL}`);
             } catch (error) {
                 res.status(500).send({ message: 'Server error', error: error.message });
             }
