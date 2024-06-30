@@ -24,30 +24,75 @@
 
 ## Usage:
 
-- API Endpoints:
+- **API Endpoints:**
 
   - **POST** `/api/v1/users`
 
-        - **Description:** Create a new user.
-        - **Request:**
+    - **Description:** Create a new user.
+    - **Request Body:**
 
-          ```json
-          {
+      ```json
+      {
+        "email": "example@gmail.com",
+        "fullName": "John Doe",
+        "gender": "Male",
+        "imageUrl": "https://..."
+      }
+      ```
+
+    - **Response Body:**
+
+      ```json
+      {
+        "success": true,
+        "message": "Successfully added user"
+      }
+      ```
+
+  - **POST** `/api/v1/jwt`
+
+    - **Description:** JWT token create.
+    - **Request Body:**
+
+      ```json
+      {
+        "email": "example@gmail.com"
+      }
+      ```
+
+    - **Response Body:**
+
+      ```json
+      {
+        "success": true,
+        "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imp1bW11bmlzbGFtNTE2QGdtYWlsLmNvbSIsImlhdCI6MTcxOTc2MDg3NywiZXhwIjoxNzIyMzUyODc3fQ.N0vsRZebvRIYMUDTOtDZp-Gz4d5NG4nDtSs11pTJEnQ"
+      }
+      ```
+
+  - **GET** `/api/v1/users/:email`
+
+    - **Description:** User login via firebase and get stored user data.
+    - **Request Headers:**
+
+      ```markdown
+          Authorization: Bearer <JWT_TOKEN>
+      ```
+
+    - **Response Body:**
+
+      ```json
+      {
+        "success": true,
+        "data": {
+            "_id": "656b66c2e36f0c77c88a8fs2",
             "email": "example@gmail.com",
             "fullName": "John Doe",
             "gender": "Male",
             "imageUrl": "https://...",
-          }
-          ```
-
-        - **Response:**
-
-          ```json
-          {
-            "success": true,
-            "message": "Successfully added user",
-          }
-          ```
+            "role": "user" | "admin" | "super-admin",
+        }
+      }
+      ```
 
 ## Dependencies:
 

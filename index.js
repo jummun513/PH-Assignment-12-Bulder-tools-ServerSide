@@ -40,6 +40,17 @@ async function run() {
         const ordersCollection = client.db("Builder_Tools").collection("orders");
         const reviewsCollection = client.db("Builder_Tools").collection("reviews");
 
+
+
+
+
+
+
+
+
+        /*-----------------------------------------------------------------
+        -------------------------------------------------------------------*/
+
         // jwt token create and pass for general user create and login
         app.post('/api/v1/jwt', async (req, res) => {
             try {
@@ -61,13 +72,7 @@ async function run() {
             }
         })
 
-        // get all data
-        app.get('/api/v1/tools', async (req, res) => {
-            const result = await toolsDataCollection.find().toArray();
-            res.send(result);
-        });
-
-        // get single user after login from firebase --> complete token
+        // get single user data after login from firebase
         app.get('/api/v1/users/:email', async (req, res) => {
             try {
                 const email = req.params.email;
@@ -89,7 +94,7 @@ async function run() {
             }
         })
 
-        // post single user data
+        // post single user data register
         app.post('/api/v1/users', async (req, res) => {
             const query = { email: req.body.email };
             const isExist = await usersCollection.findOne(query);
@@ -108,13 +113,13 @@ async function run() {
             }
         });
 
-        // get all user from admin side
+        // get all users from admin side
         app.get('/api/v1/users', async (req, res) => {
             const result = await usersCollection.find({ isDeleted: { $ne: true } }).toArray();
             res.send(result);
         });
 
-        // get all user from admin side
+        // update single user role from admin side
         app.patch('/api/v1/user/:id', async (req, res) => {
             const { id } = req.params;
             const data = req.body;
@@ -122,13 +127,76 @@ async function run() {
             res.send(result);
         });
 
-        // get all user from admin side
+        // delete user from admin side
         app.delete('/api/v1/user/:id', async (req, res) => {
             const { id } = req.params;
             const result = await usersCollection.updateOne({ _id: new ObjectId(`${id}`) }, { $set: { isDeleted: true } }, { upsert: false });
             res.send(result);
         });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /*-----------------------------------------------------------------
+        -------------------------------------------------------------------*/
+
+        app.post('/api/v1/tool', upload.single("file"), async (req, res) => {
+            try {
+                const data = JSON.parse(req.body.data);
+                const photoUrl = await sendImageToImageKit(req.file.filename, `Builder_tools/Tools`, req.file.path);
+                await toolsDataCollection.insertOne({ ...data, img: photoUrl, isDeleted: false });
+                res.status(200).json({
+                    success: true,
+                    message: 'Successfully added tool'
+                });
+            } catch (error) {
+                console.log(error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to add tool',
+                    error: {
+                        code: 500,
+                        description: error?.message,
+                    }
+                });
+
+            }
+        });
+
+        app.get('/api/v1/tools', async (req, res) => {
+            const result = await toolsDataCollection.find().toArray();
+            res.send(result);
+        });
+
+        app.get('/api/v1/tool/:id', async (req, res) => {
+            const { id } = req.params;
+            const result = await toolsDataCollection.findOne({ _id: new ObjectId(`${id}`) });
+            res.send(result);
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+        /*-----------------------------------------------------------------
+        -------------------------------------------------------------------*/
 
         // get all user from admin side
         app.post('/api/v1/blog', upload.single("file"), async (req, res) => {
@@ -165,36 +233,22 @@ async function run() {
             res.send(result);
         });
 
-        app.post('/api/v1/tool', upload.single("file"), async (req, res) => {
-            try {
-                const data = JSON.parse(req.body.data);
-                const photoUrl = await sendImageToImageKit(req.file.filename, `Builder_tools/Tools`, req.file.path);
-                await toolsDataCollection.insertOne({ ...data, img: photoUrl, isDeleted: false });
-                res.status(200).json({
-                    success: true,
-                    message: 'Successfully added tool'
-                });
-            } catch (error) {
-                console.log(error);
-                res.status(500).json({
-                    success: false,
-                    message: 'Failed to add tool',
-                    error: {
-                        code: 500,
-                        description: error?.message,
-                    }
-                });
-
-            }
-        });
-
-        app.get('/api/v1/tool/:id', async (req, res) => {
-            const { id } = req.params;
-            const result = await toolsDataCollection.findOne({ _id: new ObjectId(`${id}`) });
-            res.send(result);
-        });
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+        /*-----------------------------------------------------------------
+        -------------------------------------------------------------------*/
 
         // order section
         app.post('/api/v1/order', async (req, res) => {
@@ -357,6 +411,21 @@ async function run() {
         });
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /*-----------------------------------------------------------------
+        -------------------------------------------------------------------*/
 
         // review section
         app.post('/api/v1/review', async (req, res) => {
