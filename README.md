@@ -26,10 +26,11 @@
 
 - API Endpoints:
 
-  - POST `/api/v1/users`
+  - **POST** `/api/v1/users`
 
-        - Description: Create a new user.
-        - Request:
+        - **Description:** Create a new user.
+        - **Request:**
+
           ```json
           {
             "email": "example@gmail.com",
@@ -38,7 +39,9 @@
             "imageUrl": "https://...",
           }
           ```
-        - Response:
+
+        - **Response:**
+
           ```json
           {
             "success": true,
@@ -61,6 +64,7 @@
 ### Before Pushing Your Code into Github:
 
 1. Before pushing your code to the remote repository, ensure that you have run the following command in your terminal (Git Bash):
+
    ```bash
    rm -rf .git
    ```
