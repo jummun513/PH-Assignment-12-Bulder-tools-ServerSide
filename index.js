@@ -41,7 +41,7 @@ async function run() {
         const reviewsCollection = client.db("Builder_Tools").collection("reviews");
 
         // jwt token create and pass for general user create and login
-        app.post('/jwt', async (req, res) => {
+        app.post('/api/v1/jwt', async (req, res) => {
             try {
                 const user = req.body;
                 const token = jwt.sign(user, process.env.COOKIE_SECRET, { expiresIn: '30d' });
@@ -68,7 +68,7 @@ async function run() {
         });
 
         // get single user after login from firebase --> complete token
-        app.get('/users/:email', async (req, res) => {
+        app.get('/api/v1/users/:email', async (req, res) => {
             try {
                 const email = req.params.email;
                 const query = { email: email, isDeleted: { $ne: true } };
@@ -90,7 +90,7 @@ async function run() {
         })
 
         // post single user data
-        app.post('/users', async (req, res) => {
+        app.post('/api/v1/users', async (req, res) => {
             const query = { email: req.body.email };
             const isExist = await usersCollection.findOne(query);
             if (isExist) {
@@ -281,10 +281,10 @@ async function run() {
                     total_amount: (Number(order?.quantity) * Number(order?.toolId?.price)),
                     currency: 'BDT',
                     tran_id: tranId,
-                    success_url: `${process.env.SERVER_SIDE_URL}/api/v1/order/payment/success?orderId=${order?._id}&transId=${tranId}`,
-                    fail_url: `${process.env.SERVER_SIDE_URL}/api/v1/order/payment/failed?orderId=${order?._id}&transId=${tranId}`,
-                    cancel_url: `${process.env.SERVER_SIDE_URL}/api/v1/order/payment/cancel`,
-                    ipn_url: `${process.env.SERVER_SIDE_URL}/api/v1/order/payment/cancel`,
+                    success_url: `${process.env.SERVER_SIDE_URL || 'http://localhost:8080'}/api/v1/order/payment/success?orderId=${order?._id}&transId=${tranId}`,
+                    fail_url: `${process.env.SERVER_SIDE_URL || 'http://localhost:8080'}/api/v1/order/payment/failed?orderId=${order?._id}&transId=${tranId}`,
+                    cancel_url: `${process.env.SERVER_SIDE_URL || 'http://localhost:8080'}/api/v1/order/payment/cancel`,
+                    ipn_url: `${process.env.SERVER_SIDE_URL || 'http://localhost:8080'}/api/v1/order/payment/cancel`,
                     shipping_method: 'Courier',
                     product_name: order?.toolId?.heading,
                     product_category: order?.toolId?.category,
@@ -328,10 +328,10 @@ async function run() {
                     }
                 });
                 if (result.modifiedCount > 0) {
-                    res.redirect(`${process.env.CLIENT_SIDE_URL}/checkout/${data.orderId}/payment/success`);
+                    res.redirect(`${process.env.CLIENT_SIDE_URL || 'http://localhost:5173'}/checkout/${data.orderId}/payment/success`);
                 }
                 else {
-                    res.redirect(`${process.env.CLIENT_SIDE_URL}`);
+                    res.redirect(`${process.env.CLIENT_SIDE_URL || 'http://localhost:5173'}`);
                 }
             } catch (error) {
                 res.status(500).send({ message: 'Server error', error: error.message });
@@ -341,7 +341,7 @@ async function run() {
         app.post('/api/v1/order/payment/failed', async (req, res) => {
             const data = req.query;
             try {
-                res.redirect(`${process.env.CLIENT_SIDE_URL}/checkout/${data.orderId}/payment/failed`);
+                res.redirect(`${process.env.CLIENT_SIDE_URL || 'http://localhost:5173'}/checkout/${data.orderId}/payment/failed`);
             } catch (error) {
                 res.status(500).send({ message: 'Server error', error: error.message });
             }
@@ -350,7 +350,7 @@ async function run() {
         app.post('/api/v1/order/payment/cancel', async (req, res) => {
             const data = req.query;
             try {
-                res.redirect(`${process.env.CLIENT_SIDE_URL}`);
+                res.redirect(`${process.env.CLIENT_SIDE_URL || 'http://localhost:5173'}`);
             } catch (error) {
                 res.status(500).send({ message: 'Server error', error: error.message });
             }
